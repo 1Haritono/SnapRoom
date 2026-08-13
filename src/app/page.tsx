@@ -6,14 +6,22 @@ import { RoomEditor } from '@/components/RoomEditor';
 import { FurnitureEditor } from '@/components/FurnitureEditor';
 import { Plan2DView } from '@/components/Plan2DView';
 import { Scene3DView } from '@/components/Scene3DView';
-import { Box, Home, Eye, LayoutGrid } from 'lucide-react';
+import { SelectedModulePanel } from '@/components/SelectedModulePanel';
+import { Box, Home, Eye, LayoutGrid, RotateCw, RotateCcw, RefreshCw } from 'lucide-react';
 
 export default function HomeApp() {
-  const { viewMode, setViewMode } = useAppStore();
+  const {
+    viewMode,
+    setViewMode,
+    planRotation,
+    rotatePlanClockwise,
+    rotatePlanCounterClockwise,
+    resetPlanRotation,
+  } = useAppStore();
   const [activeTab, setActiveTab] = useState<'room' | 'furniture'>('room');
 
   return (
-    <div className="flex h-screen w-screen bg-slate-950 text-slate-100 overflow-hidden font-sans">
+    <div className="flex h-screen w-screen bg-slate-950 text-slate-100 overflow-hidden font-sans relative">
       {/* Sidebar Controls */}
       <div className="w-96 h-full bg-slate-900 border-r border-slate-800 flex flex-col z-20 shadow-2xl">
         {/* Header */}
@@ -22,7 +30,7 @@ export default function HomeApp() {
             <Box className="w-6 h-6 text-indigo-500" />
             <div>
               <h1 className="font-bold text-base text-white tracking-tight">Конструктор Мебели</h1>
-              <p className="text-[10px] text-slate-400">Пробная 3D/2D версия 1.0</p>
+              <p className="text-[10px] text-slate-400">Версия 1.1 — 3D & 2D Проектирование</p>
             </div>
           </div>
         </div>
@@ -67,30 +75,61 @@ export default function HomeApp() {
 
       {/* Viewport (2D / 3D main canvas) */}
       <div className="flex-1 h-full relative flex flex-col">
-        {/* View Mode Toggle Switch */}
-        <div className="absolute top-4 right-4 z-30 flex bg-slate-900/90 p-1 rounded-lg border border-slate-700 backdrop-blur shadow-lg">
-          <button
-            onClick={() => setViewMode('2D')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-colors ${
-              viewMode === '2D'
-                ? 'bg-indigo-600 text-white shadow'
-                : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <LayoutGrid className="w-4 h-4" />
-            <span>2D План</span>
-          </button>
-          <button
-            onClick={() => setViewMode('3D')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-colors ${
-              viewMode === '3D'
-                ? 'bg-indigo-600 text-white shadow'
-                : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <Eye className="w-4 h-4" />
-            <span>3D Просмотр</span>
-          </button>
+        {/* Top Control Bar: View Mode Switch & 2D Rotation Controls */}
+        <div className="absolute top-4 right-4 z-30 flex items-center gap-3">
+          {/* 2D Plan View Rotation Toolbar */}
+          {viewMode === '2D' && (
+            <div className="flex items-center gap-1 bg-slate-900/90 p-1 rounded-lg border border-slate-700 backdrop-blur shadow-lg text-xs">
+              <button
+                onClick={rotatePlanCounterClockwise}
+                className="p-1.5 rounded hover:bg-slate-800 text-slate-300 hover:text-white transition-colors"
+                title="Повернуть вид на 90° против часовой"
+              >
+                <RotateCcw className="w-4 h-4" />
+              </button>
+              <button
+                onClick={rotatePlanClockwise}
+                className="p-1.5 rounded hover:bg-slate-800 text-slate-300 hover:text-white transition-colors"
+                title="Повернуть вид на 90° по часовой"
+              >
+                <RotateCw className="w-4 h-4" />
+              </button>
+              <button
+                onClick={resetPlanRotation}
+                className="flex items-center gap-1 px-2 py-1 rounded hover:bg-slate-800 text-slate-400 hover:text-slate-200 transition-colors"
+                title="Сбросить угол вида"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                <span>{planRotation}°</span>
+              </button>
+            </div>
+          )}
+
+          {/* View Mode Toggle */}
+          <div className="flex bg-slate-900/90 p-1 rounded-lg border border-slate-700 backdrop-blur shadow-lg">
+            <button
+              onClick={() => setViewMode('2D')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-colors ${
+                viewMode === '2D'
+                  ? 'bg-indigo-600 text-white shadow'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <LayoutGrid className="w-4 h-4" />
+              <span>2D План</span>
+            </button>
+            <button
+              onClick={() => setViewMode('3D')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-colors ${
+                viewMode === '3D'
+                  ? 'bg-indigo-600 text-white shadow'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <Eye className="w-4 h-4" />
+              <span>3D Просмотр</span>
+            </button>
+          </div>
         </div>
 
         {/* Canvas Display */}
@@ -98,6 +137,9 @@ export default function HomeApp() {
           {viewMode === '2D' ? <Plan2DView /> : <Scene3DView />}
         </div>
       </div>
+
+      {/* Floating Selected Object Properties Inspector Panel */}
+      <SelectedModulePanel />
     </div>
   );
 }
