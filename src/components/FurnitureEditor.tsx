@@ -204,20 +204,11 @@ export const FurnitureEditor: React.FC = () => {
             </div>
           </div>
 
-          {/* Separate Materials */}
-          <div className="pt-2 border-t border-slate-700">
-            <div className="text-xs font-semibold text-slate-300 mb-2">Назначение материалов</div>
-            <MaterialSelector
-              label="Корпус (Верх и Низ)"
-              material={selectedModule.carcassMaterial}
-              onChange={(mat) => updateModule(selectedModule.id, { carcassMaterial: mat })}
-            />
-            <MaterialSelector
-              label="Фасады"
-              material={selectedModule.facadeMaterial}
-              onChange={(mat) => updateModule(selectedModule.id, { facadeMaterial: mat })}
-            />
-          </div>
+          {/* Selected Module Dimensions & Coordinates */}
+          <div className="text-xs text-indigo-400 font-semibold mb-2">Настройки выбранного модуля</div>
+          <p className="text-[11px] text-slate-400">
+            Используйте плавающую панель справа для изменения габаритов модуля, а также отдельную панель материалов слева.
+          </p>
         </div>
       )}
     </div>

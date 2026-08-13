@@ -18,6 +18,7 @@ export const TopViewBar: React.FC = () => {
   const {
     cameraPreset,
     setCameraPreset,
+    triggerCameraRotate,
     viewMode,
   } = useAppStore();
 
@@ -27,7 +28,7 @@ export const TopViewBar: React.FC = () => {
   const presets = [
     {
       id: 'left',
-      label: 'Вид сбоку (Левый)',
+      label: 'Повернуть влево (90°)',
       shortLabel: 'Бок Л',
       svgIcon: (
         <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -50,7 +51,7 @@ export const TopViewBar: React.FC = () => {
     },
     {
       id: 'right',
-      label: 'Вид сбоку (Правый)',
+      label: 'Повернуть вправо (90°)',
       shortLabel: 'Бок П',
       svgIcon: (
         <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -84,6 +85,11 @@ export const TopViewBar: React.FC = () => {
     },
   ] as const;
 
+  const handlePresetClick = (id: 'left' | 'right' | 'front' | 'top' | 'iso') => {
+    setCameraPreset(id);
+    triggerCameraRotate(id);
+  };
+
   return (
     <div className="flex items-center gap-1 bg-slate-900/90 p-1.5 rounded-lg border border-slate-700 backdrop-blur shadow-lg text-xs">
       <span className="text-[11px] font-semibold text-slate-400 px-2 border-r border-slate-700">
@@ -94,13 +100,13 @@ export const TopViewBar: React.FC = () => {
         return (
           <button
             key={p.id}
-            onClick={() => setCameraPreset(p.id)}
+            onClick={() => handlePresetClick(p.id)}
             className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md transition-all font-medium border ${
               isActive
                 ? 'bg-indigo-600 text-white border-indigo-500 shadow'
                 : 'bg-slate-950/40 text-slate-400 border-slate-800 hover:text-slate-200 hover:bg-slate-800 hover:border-slate-700'
             }`}
-            title={`${p.label} (клик для поворота +90°)`}
+            title={p.label}
           >
             {p.svgIcon}
             <span className="hidden md:inline text-[11px]">{p.shortLabel}</span>

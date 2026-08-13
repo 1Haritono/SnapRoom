@@ -19,6 +19,13 @@ interface AppState {
   isInspectorCollapsed: boolean;
   toggleInspectorCollapsed: () => void;
 
+  // Left Sidebar Collapsed State
+  isSidebarCollapsed: boolean;
+  toggleSidebarCollapsed: () => void;
+
+  // Camera Rotation Action trigger (direction: 'left' | 'right' | 'front' | 'top' | 'iso')
+  triggerCameraRotate: (direction: 'left' | 'right' | 'front' | 'top' | 'iso') => void;
+
   // 2D Plan View Rotation angle (0, 90, 180, 270)
   planRotation: number;
   rotatePlanClockwise: () => void;
@@ -71,6 +78,13 @@ export const useAppStore = create<AppState>()(
 
       isInspectorCollapsed: false,
       toggleInspectorCollapsed: () => set((state) => ({ isInspectorCollapsed: !state.isInspectorCollapsed })),
+
+      isSidebarCollapsed: false,
+      toggleSidebarCollapsed: () => set((state) => ({ isSidebarCollapsed: !state.isSidebarCollapsed })),
+
+      triggerCameraRotate: (direction) => {
+        window.dispatchEvent(new CustomEvent('camera-rotate-relative', { detail: { direction } }));
+      },
 
       planRotation: 0,
       rotatePlanClockwise: () => set((state) => ({ planRotation: (state.planRotation + 90) % 360 })),

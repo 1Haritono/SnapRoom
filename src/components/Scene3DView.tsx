@@ -168,7 +168,7 @@ const DynamicWall: React.FC<DynamicWallProps> = ({ wallId, position, rotation = 
   );
 };
 
-// Camera Controller for smooth camera transitions, repeated preset rotation steps, and free Orbit movement
+// Camera Controller for smooth camera transitions, relative cyclic 90-degree rotations, and free Orbit movement
 interface CameraControllerProps {
   controlsRef: React.RefObject<OrbitControlsImpl>;
   roomLM: number;
@@ -177,68 +177,60 @@ interface CameraControllerProps {
 }
 
 const CameraController: React.FC<CameraControllerProps> = ({ controlsRef, roomLM, roomWM, roomHM }) => {
-  const { cameraPreset } = useAppStore();
   const { camera } = useThree();
-
-  const [rotationAngleOffset, setRotationAngleOffset] = useState(0);
-  const prevPresetRef = useRef(cameraPreset);
-
   const targetCenter = useMemo(() => new THREE.Vector3(roomLM / 2, roomHM / 3, roomWM / 2), [roomLM, roomHM, roomWM]);
 
-  // Repeated click on preset rotates camera by +90 degrees around center
+  // Handle relative cyclic camera rotations (+90 deg step around current focus point)
   useEffect(() => {
-    if (prevPresetRef.current === cameraPreset) {
-      setRotationAngleOffset((prev) => prev + Math.PI / 2);
-    } else {
-      setRotationAngleOffset(0);
-      prevPresetRef.current = cameraPreset;
-    }
-  }, [cameraPreset]);
+    const handleRelativeRotate = (e: Event) => {
+      const customEv = e as CustomEvent<{ direction: string }>;
+      const direction = customEv.detail.direction;
 
-  // Calculate target camera position based on preset & rotation angle offset
-  const targetCamPos = useMemo(() => {
-    let basePos = new THREE.Vector3();
-    const radius = Math.max(roomLM, roomWM) * 1.8;
+      if (!controlsRef.current) return;
 
-    switch (cameraPreset) {
-      case 'front':
-        basePos.set(roomLM / 2, roomHM / 2, roomWM / 2 + radius);
-        break;
-      case 'top':
-        basePos.set(roomLM / 2, roomHM / 2 + radius * 1.5, roomWM / 2 + 0.01);
-        break;
-      case 'left':
-        basePos.set(roomLM / 2 - radius, roomHM / 2, roomWM / 2);
-        break;
-      case 'right':
-        basePos.set(roomLM / 2 + radius, roomHM / 2, roomWM / 2);
-        break;
-      case 'iso':
-      default:
-        basePos.set(roomLM / 2 + radius * 0.7, roomHM / 2 + radius * 0.7, roomWM / 2 + radius * 0.7);
-        break;
-    }
+      const angleStep = Math.PI / 2; // 90 degrees in radians
+      const radius = Math.max(roomLM, roomWM) * 1.8;
 
-    if (rotationAngleOffset !== 0) {
-      // Rotate basePos around targetCenter on Y axis
-      const offsetVec = basePos.clone().sub(targetCenter);
-      offsetVec.applyAxisAngle(new THREE.Vector3(0, 1, 0), rotationAngleOffset);
-      return targetCenter.clone().add(offsetVec);
-    }
+      if (direction === 'iso') {
+        const isoPos = new THREE.Vector3(
+          roomLM / 2 + radius * 0.7,
+          roomHM / 2 + radius * 0.7,
+          roomWM / 2 + radius * 0.7
+        );
+        camera.position.copy(isoPos);
+        controlsRef.current.target.set(roomLM / 2, roomHM / 3, roomWM / 2);
+      } else if (direction === 'left') {
+        // Rotate camera around Y axis relative to current focus target by +90 degrees (Counter-Clockwise)
+        const target = controlsRef.current.target.clone();
+        const offset = camera.position.clone().sub(target);
+        // Maintain horizontal level and rotate vector
+        offset.applyAxisAngle(new THREE.Vector3(0, 1, 0), angleStep);
+        camera.position.copy(target.add(offset));
+      } else if (direction === 'right') {
+        // Rotate camera around Y axis relative to current focus target by -90 degrees (Clockwise)
+        const target = controlsRef.current.target.clone();
+        const offset = camera.position.clone().sub(target);
+        offset.applyAxisAngle(new THREE.Vector3(0, 1, 0), -angleStep);
+        camera.position.copy(target.add(offset));
+      } else if (direction === 'front') {
+        camera.position.set(roomLM / 2, roomHM / 2, roomWM / 2 + radius);
+        controlsRef.current.target.set(roomLM / 2, roomHM / 3, roomWM / 2);
+      } else if (direction === 'top') {
+        camera.position.set(roomLM / 2, roomHM / 2 + radius * 1.5, roomWM / 2 + 0.01);
+        controlsRef.current.target.set(roomLM / 2, roomHM / 3, roomWM / 2);
+      }
 
-    return basePos;
-  }, [cameraPreset, rotationAngleOffset, roomLM, roomHM, roomWM, targetCenter]);
+      controlsRef.current.update();
+    };
 
-  // Smooth lerp transition frame update
+    window.addEventListener('camera-rotate-relative', handleRelativeRotate);
+    return () => window.removeEventListener('camera-rotate-relative', handleRelativeRotate);
+  }, [camera, controlsRef, roomLM, roomWM, roomHM]);
+
+  // Smooth lerp transition frame update when damping is enabled
   useFrame(() => {
     if (!controlsRef.current) return;
-
-    // Only auto-lerp if user is not actively dragging camera with OrbitControls
-    if (!controlsRef.current.state || controlsRef.current.state === -1) {
-      camera.position.lerp(targetCamPos, 0.08);
-      controlsRef.current.target.lerp(targetCenter, 0.05);
-      controlsRef.current.update();
-    }
+    controlsRef.current.update();
   });
 
   return null;
