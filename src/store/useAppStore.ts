@@ -7,6 +7,14 @@ interface AppState {
   viewMode: '2D' | '3D';
   setViewMode: (mode: '2D' | '3D') => void;
 
+  // 3D Camera Presets: 'iso' | 'front' | 'top' | 'left' | 'right'
+  cameraPreset: 'iso' | 'front' | 'top' | 'left' | 'right';
+  setCameraPreset: (preset: 'iso' | 'front' | 'top' | 'left' | 'right') => void;
+
+  // Radial Context Menu State
+  contextMenu: { x: number; y: number; open: boolean } | null;
+  setContextMenu: (menu: { x: number; y: number; open: boolean } | null) => void;
+
   // 2D Plan View Rotation angle (0, 90, 180, 270)
   planRotation: number;
   rotatePlanClockwise: () => void;
@@ -50,6 +58,12 @@ export const useAppStore = create<AppState>()(
     (set, get) => ({
       viewMode: '3D',
       setViewMode: (mode) => set({ viewMode: mode }),
+
+      cameraPreset: 'iso',
+      setCameraPreset: (preset) => set({ cameraPreset: preset }),
+
+      contextMenu: null,
+      setContextMenu: (menu) => set({ contextMenu: menu }),
 
       planRotation: 0,
       rotatePlanClockwise: () => set((state) => ({ planRotation: (state.planRotation + 90) % 360 })),
