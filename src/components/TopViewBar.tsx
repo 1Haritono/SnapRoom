@@ -28,8 +28,8 @@ export const TopViewBar: React.FC = () => {
   const presets = [
     {
       id: 'left',
-      label: 'Повернуть влево (90°)',
-      shortLabel: 'Бок Л',
+      label: 'Вид сбоку (Левый)',
+      shortLabel: 'Вид слева',
       svgIcon: (
         <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <path d="M12 3l9 4.5v9L12 21l-9-4.5v-9L12 3z" />
@@ -40,8 +40,8 @@ export const TopViewBar: React.FC = () => {
     },
     {
       id: 'front',
-      label: 'Вид спереди',
-      shortLabel: 'Фронт',
+      label: 'Вид спереди (Фронт)',
+      shortLabel: 'Спереди',
       svgIcon: (
         <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <rect x="4" y="4" width="16" height="16" rx="2" strokeWidth="2" />
@@ -51,8 +51,8 @@ export const TopViewBar: React.FC = () => {
     },
     {
       id: 'right',
-      label: 'Повернуть вправо (90°)',
-      shortLabel: 'Бок П',
+      label: 'Вид сбоку (Правый)',
+      shortLabel: 'Вид справа',
       svgIcon: (
         <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <path d="M12 3l9 4.5v9L12 21l-9-4.5v-9L12 3z" />
@@ -74,7 +74,7 @@ export const TopViewBar: React.FC = () => {
     },
     {
       id: 'iso',
-      label: 'Изометрия (Свободный)',
+      label: 'Изометрия (Свободный 3D)',
       shortLabel: 'Изометрия',
       svgIcon: (
         <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
