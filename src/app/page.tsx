@@ -11,7 +11,7 @@ import { StandaloneMaterialsPanel } from '@/components/StandaloneMaterialsPanel'
 import { TopViewBar } from '@/components/TopViewBar';
 import { RadialContextMenu } from '@/components/RadialContextMenu';
 import { RoomDimensionsBar } from '@/components/RoomDimensionsBar';
-import { Box, Home, Eye, LayoutGrid, RotateCw, RotateCcw, RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Box, Home, Eye, LayoutGrid, RotateCw, RotateCcw, RefreshCw, ChevronLeft, ChevronRight, ChevronUp, ChevronDown } from 'lucide-react';
 
 export default function HomeApp() {
   const {
