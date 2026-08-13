@@ -1,0 +1,103 @@
+'use client';
+
+import React, { useState } from 'react';
+import { useAppStore } from '@/store/useAppStore';
+import { RoomEditor } from '@/components/RoomEditor';
+import { FurnitureEditor } from '@/components/FurnitureEditor';
+import { Plan2DView } from '@/components/Plan2DView';
+import { Scene3DView } from '@/components/Scene3DView';
+import { Box, Home, Eye, LayoutGrid } from 'lucide-react';
+
+export default function HomeApp() {
+  const { viewMode, setViewMode } = useAppStore();
+  const [activeTab, setActiveTab] = useState<'room' | 'furniture'>('room');
+
+  return (
+    <div className="flex h-screen w-screen bg-slate-950 text-slate-100 overflow-hidden font-sans">
+      {/* Sidebar Controls */}
+      <div className="w-96 h-full bg-slate-900 border-r border-slate-800 flex flex-col z-20 shadow-2xl">
+        {/* Header */}
+        <div className="p-4 border-b border-slate-800 flex items-center justify-between bg-slate-900/50">
+          <div className="flex items-center gap-2">
+            <Box className="w-6 h-6 text-indigo-500" />
+            <div>
+              <h1 className="font-bold text-base text-white tracking-tight">Конструктор Мебели</h1>
+              <p className="text-[10px] text-slate-400">Пробная 3D/2D версия 1.0</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Tab Navigation */}
+        <div className="flex border-b border-slate-800 bg-slate-900">
+          <button
+            onClick={() => setActiveTab('room')}
+            className={`flex-1 py-2.5 px-3 flex items-center justify-center gap-2 text-xs font-semibold border-b-2 transition-all ${
+              activeTab === 'room'
+                ? 'border-indigo-500 text-indigo-400 bg-slate-800/40'
+                : 'border-transparent text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <Home className="w-4 h-4" />
+            <span>1. Помещение</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('furniture')}
+            className={`flex-1 py-2.5 px-3 flex items-center justify-center gap-2 text-xs font-semibold border-b-2 transition-all ${
+              activeTab === 'furniture'
+                ? 'border-indigo-500 text-indigo-400 bg-slate-800/40'
+                : 'border-transparent text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <Box className="w-4 h-4" />
+            <span>2. Мебель и Материалы</span>
+          </button>
+        </div>
+
+        {/* Tab Content */}
+        <div className="flex-1 overflow-y-auto p-4 custom-scrollbar space-y-4">
+          {activeTab === 'room' && <RoomEditor />}
+          {activeTab === 'furniture' && <FurnitureEditor />}
+        </div>
+
+        {/* Footer info */}
+        <div className="p-3 border-t border-slate-800 text-[11px] text-slate-500 text-center bg-slate-900/50">
+          Данные сохраняются автоматически в LocalStorage
+        </div>
+      </div>
+
+      {/* Viewport (2D / 3D main canvas) */}
+      <div className="flex-1 h-full relative flex flex-col">
+        {/* View Mode Toggle Switch */}
+        <div className="absolute top-4 right-4 z-30 flex bg-slate-900/90 p-1 rounded-lg border border-slate-700 backdrop-blur shadow-lg">
+          <button
+            onClick={() => setViewMode('2D')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-colors ${
+              viewMode === '2D'
+                ? 'bg-indigo-600 text-white shadow'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <LayoutGrid className="w-4 h-4" />
+            <span>2D План</span>
+          </button>
+          <button
+            onClick={() => setViewMode('3D')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-colors ${
+              viewMode === '3D'
+                ? 'bg-indigo-600 text-white shadow'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <Eye className="w-4 h-4" />
+            <span>3D Просмотр</span>
+          </button>
+        </div>
+
+        {/* Canvas Display */}
+        <div className="w-full h-full">
+          {viewMode === '2D' ? <Plan2DView /> : <Scene3DView />}
+        </div>
+      </div>
+    </div>
+  );
+}
