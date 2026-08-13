@@ -32,8 +32,8 @@ export default function HomeApp() {
           <div className="flex items-center gap-2">
             <Box className="w-6 h-6 text-indigo-500" />
             <div>
-              <h1 className="font-bold text-base text-white tracking-tight">Конструктор Мебели</h1>
-              <p className="text-[10px] text-slate-400">Версия 1.2 — SnapRoom Pro</p>
+              <h1 className="font-bold text-base text-white tracking-tight">SnapRoom</h1>
+              <p className="text-[10px] text-slate-400">SnapRoom 1.2 — 3D & 2D Проектирование</p>
             </div>
           </div>
         </div>

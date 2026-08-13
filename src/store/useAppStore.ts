@@ -15,6 +15,10 @@ interface AppState {
   contextMenu: { x: number; y: number; open: boolean } | null;
   setContextMenu: (menu: { x: number; y: number; open: boolean } | null) => void;
 
+  // Inspector Collapsed State
+  isInspectorCollapsed: boolean;
+  toggleInspectorCollapsed: () => void;
+
   // 2D Plan View Rotation angle (0, 90, 180, 270)
   planRotation: number;
   rotatePlanClockwise: () => void;
@@ -64,6 +68,9 @@ export const useAppStore = create<AppState>()(
 
       contextMenu: null,
       setContextMenu: (menu) => set({ contextMenu: menu }),
+
+      isInspectorCollapsed: false,
+      toggleInspectorCollapsed: () => set((state) => ({ isInspectorCollapsed: !state.isInspectorCollapsed })),
 
       planRotation: 0,
       rotatePlanClockwise: () => set((state) => ({ planRotation: (state.planRotation + 90) % 360 })),
