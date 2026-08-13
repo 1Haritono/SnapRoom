@@ -49,8 +49,8 @@ const Module3D: React.FC<Module3DProps> = ({ module, isSelected, onSelect }) => 
 
   return (
     <group position={[posX, posY, posZ]} rotation={[0, rotY, 0]} onClick={(e) => { e.stopPropagation(); onSelect(); }}>
-      {/* Carcass Main Box */}
-      <mesh castShadow receiveShadow>
+      {/* Carcass Main Box - SHADOWS DISABLED */}
+      <mesh castShadow={false} receiveShadow={false}>
         <boxGeometry args={[widthM, heightM, depthM]} />
         <meshStandardMaterial
           color={module.carcassMaterial.color || '#cccccc'}
@@ -59,8 +59,8 @@ const Module3D: React.FC<Module3DProps> = ({ module, isSelected, onSelect }) => 
         />
       </mesh>
 
-      {/* Front Facade Door Panel */}
-      <mesh position={[0, 0, depthM / 2 + 0.005]} castShadow receiveShadow>
+      {/* Front Facade Door Panel - SHADOWS DISABLED */}
+      <mesh position={[0, 0, depthM / 2 + 0.005]} castShadow={false} receiveShadow={false}>
         <boxGeometry args={[widthM - 0.01, heightM - 0.01, 0.018]} />
         <meshStandardMaterial
           color={module.facadeMaterial.color || '#ffffff'}
@@ -94,8 +94,9 @@ const Module3D: React.FC<Module3DProps> = ({ module, isSelected, onSelect }) => 
   );
 };
 
-// Smart Wall Component: COMPLETELY HIDES (visible = false) when obscuring camera view
+// Smart Wall Component with Raycast / Ray-Vector check for wall hiding and view-dependent label visibility
 interface DynamicWallProps {
+  wallId: 'A' | 'B' | 'C' | 'D';
   position: [number, number, number];
   rotation?: [number, number, number];
   size: [number, number, number];
@@ -103,9 +104,11 @@ interface DynamicWallProps {
   roomCenter: [number, number, number];
 }
 
-const DynamicWall: React.FC<DynamicWallProps> = ({ position, rotation = [0, 0, 0], size, label, roomCenter }) => {
+const DynamicWall: React.FC<DynamicWallProps> = ({ wallId, position, rotation = [0, 0, 0], size, label, roomCenter }) => {
   const meshRef = useRef<THREE.Mesh>(null);
-  const [isVisible, setIsVisible] = useState(true);
+  const [opacity, setOpacity] = useState(0.7);
+  const [isLabelVisible, setIsLabelVisible] = useState(true);
+  const { cameraPreset } = useAppStore();
 
   useFrame(({ camera }) => {
     if (!meshRef.current) return;
@@ -113,40 +116,59 @@ const DynamicWall: React.FC<DynamicWallProps> = ({ position, rotation = [0, 0, 0
     const wallPos = new THREE.Vector3(...position);
     const centerPos = new THREE.Vector3(...roomCenter);
 
-    // Wall normal direction pointing inside the room
+    // Vector from wall position to room center
     const wallToCenter = centerPos.clone().sub(wallPos).normalize();
-    // Wall to camera vector
+    // Vector from wall position to camera
     const wallToCam = camera.position.clone().sub(wallPos).normalize();
 
-    // Dot product check: if camera is outside looking towards room center through this wall -> hide wall completely
+    // Dot product check: if camera is standing behind this wall looking inside -> make wall ultra transparent (opacity 0.08)
     const dot = wallToCenter.dot(wallToCam);
-    const shouldHide = dot > 0.12;
+    const isObscuring = dot > 0.05;
 
-    if (shouldHide !== !isVisible) {
-      setIsVisible(!shouldHide);
+    const targetOpacity = isObscuring ? 0.08 : 0.7;
+    setOpacity((prev) => THREE.MathUtils.lerp(prev, targetOpacity, 0.15));
+
+    // Label visibility rules:
+    // Front view -> show only back wall (C)
+    // Top view -> show all walls
+    let labelShow = true;
+    if (cameraPreset === 'front') {
+      labelShow = wallId === 'C';
+    } else if (cameraPreset === 'left') {
+      labelShow = wallId === 'B';
+    } else if (cameraPreset === 'right') {
+      labelShow = wallId === 'D';
     }
+    setIsLabelVisible(labelShow);
   });
 
   return (
     <group position={position} rotation={rotation}>
-      <mesh ref={meshRef} receiveShadow visible={isVisible}>
+      <mesh ref={meshRef} receiveShadow={false}>
         <boxGeometry args={size} />
-        <meshStandardMaterial color="#1e293b" opacity={0.7} transparent />
+        <meshStandardMaterial
+          color="#1e293b"
+          opacity={opacity}
+          transparent
+          depthWrite={opacity > 0.3}
+        />
       </mesh>
 
-      {/* Wall 3D Billboard Label - remains visible for orientation */}
-      <Billboard position={[0, size[1] / 2 + 0.2, 0]}>
-        <Html center transform sprite distanceFactor={10}>
-          <div className={`bg-slate-900/90 text-indigo-400 text-xs font-bold px-2 py-0.5 rounded border border-slate-700 shadow-md whitespace-nowrap transition-opacity duration-200 pointer-events-none select-none ${isVisible ? 'opacity-85' : 'opacity-40'}`}>
-            {label}
-          </div>
-        </Html>
-      </Billboard>
+      {/* Wall 3D Billboard Label */}
+      {isLabelVisible && (
+        <Billboard position={[0, size[1] / 2 + 0.2, 0]}>
+          <Html center transform sprite distanceFactor={10}>
+            <div className="bg-slate-900/90 text-indigo-400 text-xs font-bold px-2 py-0.5 rounded border border-slate-700 shadow-md whitespace-nowrap opacity-85 pointer-events-none select-none">
+              {label}
+            </div>
+          </Html>
+        </Billboard>
+      )}
     </group>
   );
 };
 
-// Camera Controller Component for smooth camera presets and context menu shift commands
+// Camera Controller for smooth camera transitions, repeated preset rotation steps, and free Orbit movement
 interface CameraControllerProps {
   controlsRef: React.RefObject<OrbitControlsImpl>;
   roomLM: number;
@@ -158,64 +180,65 @@ const CameraController: React.FC<CameraControllerProps> = ({ controlsRef, roomLM
   const { cameraPreset } = useAppStore();
   const { camera } = useThree();
 
+  const [rotationAngleOffset, setRotationAngleOffset] = useState(0);
+  const prevPresetRef = useRef(cameraPreset);
+
   const targetCenter = useMemo(() => new THREE.Vector3(roomLM / 2, roomHM / 3, roomWM / 2), [roomLM, roomHM, roomWM]);
 
-  // Target camera position based on current preset
+  // Repeated click on preset rotates camera by +90 degrees around center
+  useEffect(() => {
+    if (prevPresetRef.current === cameraPreset) {
+      setRotationAngleOffset((prev) => prev + Math.PI / 2);
+    } else {
+      setRotationAngleOffset(0);
+      prevPresetRef.current = cameraPreset;
+    }
+  }, [cameraPreset]);
+
+  // Calculate target camera position based on preset & rotation angle offset
   const targetCamPos = useMemo(() => {
+    let basePos = new THREE.Vector3();
+    const radius = Math.max(roomLM, roomWM) * 1.8;
+
     switch (cameraPreset) {
       case 'front':
-        return new THREE.Vector3(roomLM / 2, roomHM / 2, roomWM * 2.2);
+        basePos.set(roomLM / 2, roomHM / 2, roomWM / 2 + radius);
+        break;
       case 'top':
-        return new THREE.Vector3(roomLM / 2, roomHM * 2.8, roomWM / 2 + 0.01);
+        basePos.set(roomLM / 2, roomHM / 2 + radius * 1.5, roomWM / 2 + 0.01);
+        break;
       case 'left':
-        return new THREE.Vector3(-roomLM * 1.5, roomHM / 2, roomWM / 2);
+        basePos.set(roomLM / 2 - radius, roomHM / 2, roomWM / 2);
+        break;
       case 'right':
-        return new THREE.Vector3(roomLM * 2.5, roomHM / 2, roomWM / 2);
+        basePos.set(roomLM / 2 + radius, roomHM / 2, roomWM / 2);
+        break;
       case 'iso':
       default:
-        return new THREE.Vector3(roomLM * 1.4, roomHM * 1.4, roomWM * 1.7);
+        basePos.set(roomLM / 2 + radius * 0.7, roomHM / 2 + radius * 0.7, roomWM / 2 + radius * 0.7);
+        break;
     }
-  }, [cameraPreset, roomLM, roomHM, roomWM]);
 
-  // Handle radial context menu camera shift actions
-  useEffect(() => {
-    const handleShift = (e: Event) => {
-      const customEv = e as CustomEvent<{ action: string }>;
-      const action = customEv.detail.action;
+    if (rotationAngleOffset !== 0) {
+      // Rotate basePos around targetCenter on Y axis
+      const offsetVec = basePos.clone().sub(targetCenter);
+      offsetVec.applyAxisAngle(new THREE.Vector3(0, 1, 0), rotationAngleOffset);
+      return targetCenter.clone().add(offsetVec);
+    }
 
-      if (!controlsRef.current) return;
+    return basePos;
+  }, [cameraPreset, rotationAngleOffset, roomLM, roomHM, roomWM, targetCenter]);
 
-      const step = 0.5;
-      if (action === 'up') {
-        camera.position.y += step;
-        controlsRef.current.target.y += step;
-      } else if (action === 'down') {
-        camera.position.y -= step;
-        controlsRef.current.target.y -= step;
-      } else if (action === 'left') {
-        camera.position.x -= step;
-        controlsRef.current.target.x -= step;
-      } else if (action === 'right') {
-        camera.position.x += step;
-        controlsRef.current.target.x += step;
-      } else if (action === 'reset') {
-        camera.position.copy(targetCamPos);
-        controlsRef.current.target.copy(targetCenter);
-      }
-      controlsRef.current.update();
-    };
-
-    window.addEventListener('camera-shift', handleShift);
-    return () => window.removeEventListener('camera-shift', handleShift);
-  }, [camera, controlsRef, targetCamPos, targetCenter]);
-
-  // Smooth lerp transition on frame update
+  // Smooth lerp transition frame update
   useFrame(() => {
     if (!controlsRef.current) return;
 
-    camera.position.lerp(targetCamPos, 0.08);
-    controlsRef.current.target.lerp(targetCenter, 0.08);
-    controlsRef.current.update();
+    // Only auto-lerp if user is not actively dragging camera with OrbitControls
+    if (!controlsRef.current.state || controlsRef.current.state === -1) {
+      camera.position.lerp(targetCamPos, 0.08);
+      controlsRef.current.target.lerp(targetCenter, 0.05);
+      controlsRef.current.update();
+    }
   });
 
   return null;
@@ -224,6 +247,8 @@ const CameraController: React.FC<CameraControllerProps> = ({ controlsRef, roomLM
 export const Scene3DView: React.FC = () => {
   const { room, modules, selectedModuleId, setSelectedModuleId, setContextMenu } = useAppStore();
   const controlsRef = useRef<OrbitControlsImpl>(null);
+  const rightClickTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const isMouseDownRightRef = useRef(false);
 
   const roomLM = mmToM(room.mode === 'dimensions' ? room.length : room.wallA);
   const roomWM = mmToM(room.mode === 'dimensions' ? room.width : room.wallB);
@@ -231,42 +256,60 @@ export const Scene3DView: React.FC = () => {
 
   const roomCenter: [number, number, number] = [roomLM / 2, roomHM / 2, roomWM / 2];
 
+  // Mouse Down Event for Right Click hold (Radial Menu) vs Click
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (e.button === 2) { // Right Click
+      isMouseDownRightRef.current = true;
+      const mouseX = e.clientX;
+      const mouseY = e.clientY;
+
+      rightClickTimerRef.current = setTimeout(() => {
+        if (isMouseDownRightRef.current) {
+          setContextMenu({ x: mouseX, y: mouseY, open: true });
+        }
+      }, 250); // Show radial menu if right-clicked and held > 250ms
+    }
+  };
+
+  const handleMouseUp = (e: React.MouseEvent) => {
+    if (e.button === 2) {
+      isMouseDownRightRef.current = false;
+      if (rightClickTimerRef.current) {
+        clearTimeout(rightClickTimerRef.current);
+      }
+    }
+  };
+
   const handleContextMenu = (e: React.MouseEvent) => {
     e.preventDefault();
-    setContextMenu({
-      x: e.clientX,
-      y: e.clientY,
-      open: true,
-    });
   };
 
   return (
     <div
       className="w-full h-full bg-slate-950 relative"
+      onMouseDown={handleMouseDown}
+      onMouseUp={handleMouseUp}
       onContextMenu={handleContextMenu}
-      onClick={() => setContextMenu(null)}
     >
       <Canvas
-        shadows
+        shadows={false}
         camera={{ position: [roomLM * 1.4, roomHM * 1.4, roomWM * 1.7], fov: 50 }}
         onPointerDown={(e) => {
-          if (e.target === e.currentTarget) {
+          if (e.button === 0 && e.target === e.currentTarget) {
             setSelectedModuleId(null);
           }
         }}
       >
-        <ambientLight intensity={0.7} />
+        <ambientLight intensity={0.8} />
         <directionalLight
           position={[roomLM * 2, roomHM * 3, roomWM * 2]}
           intensity={1.2}
-          castShadow
-          shadow-mapSize-width={2048}
-          shadow-mapSize-height={2048}
+          castShadow={false}
         />
         <pointLight position={[roomLM / 2, roomHM - 0.2, roomWM / 2]} intensity={0.5} />
 
-        {/* Floor */}
-        <mesh position={[roomLM / 2, 0, roomWM / 2]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+        {/* Floor - SHADOWS DISABLED */}
+        <mesh position={[roomLM / 2, 0, roomWM / 2]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow={false}>
           <planeGeometry args={[roomLM, roomWM]} />
           <meshStandardMaterial color="#334155" roughness={0.8} />
         </mesh>
@@ -277,34 +320,31 @@ export const Scene3DView: React.FC = () => {
           position={[roomLM / 2, 0.001, roomWM / 2]}
         />
 
-        {/* Smart Walls with Complete Hiding (visible=false) when obscuring view */}
-        {/* Wall A (Front Wall at Z=roomWM) */}
+        {/* Smart Walls with Ultra Transparency (opacity = 0.08) when obscuring view */}
         <DynamicWall
+          wallId="A"
           position={[roomLM / 2, roomHM / 2, roomWM]}
           size={[roomLM, roomHM, 0.05]}
           label={`Стена А (${room.mode === 'dimensions' ? room.length : room.wallA} мм)`}
           roomCenter={roomCenter}
         />
-
-        {/* Wall B (Right Wall at X=roomLM) */}
         <DynamicWall
+          wallId="B"
           position={[roomLM, roomHM / 2, roomWM / 2]}
           rotation={[0, -Math.PI / 2, 0]}
           size={[roomWM, roomHM, 0.05]}
           label={`Стена Б (${room.mode === 'dimensions' ? room.width : room.wallB} мм)`}
           roomCenter={roomCenter}
         />
-
-        {/* Wall C (Back Wall at Z=0) */}
         <DynamicWall
+          wallId="C"
           position={[roomLM / 2, roomHM / 2, 0]}
           size={[roomLM, roomHM, 0.05]}
           label={`Стена В (${room.mode === 'four_walls' ? room.wallC : room.length} мм)`}
           roomCenter={roomCenter}
         />
-
-        {/* Wall D (Left Wall at X=0) */}
         <DynamicWall
+          wallId="D"
           position={[0, roomHM / 2, roomWM / 2]}
           rotation={[0, Math.PI / 2, 0]}
           size={[roomWM, roomHM, 0.05]}
@@ -312,7 +352,7 @@ export const Scene3DView: React.FC = () => {
           roomCenter={roomCenter}
         />
 
-        {/* Render Furniture Modules */}
+        {/* Render Furniture Modules with disabled shadows */}
         {modules.map((m) => (
           <Module3D
             key={m.id}
@@ -322,7 +362,13 @@ export const Scene3DView: React.FC = () => {
           />
         ))}
 
-        <OrbitControls ref={controlsRef} target={[roomLM / 2, roomHM / 3, roomWM / 2]} makeDefault />
+        <OrbitControls
+          ref={controlsRef}
+          target={[roomLM / 2, roomHM / 3, roomWM / 2]}
+          makeDefault
+          enableDamping
+          dampingFactor={0.05}
+        />
         <CameraController controlsRef={controlsRef} roomLM={roomLM} roomWM={roomWM} roomHM={roomHM} />
       </Canvas>
     </div>
