@@ -1,8 +1,6 @@
-'use client';
-
 import React from 'react';
 import { useAppStore } from '@/store/useAppStore';
-import { RotateCw, Trash2, Box, Move, X, ChevronRight, ChevronLeft } from 'lucide-react';
+import { RotateCw, Trash2, Box, Move, X, ChevronUp, ChevronDown } from 'lucide-react';
 import { MaterialSelector } from './MaterialSelector';
 
 export const SelectedModulePanel: React.FC = () => {
@@ -27,18 +25,19 @@ export const SelectedModulePanel: React.FC = () => {
 
   return (
     <div
-      className={`fixed top-20 right-4 z-30 transition-all duration-300 ease-in-out select-none ${
-        isInspectorCollapsed ? 'translate-x-[calc(100%-2.5rem)]' : 'translate-x-0'
+      className={`fixed right-4 bottom-4 z-30 transition-all duration-300 ease-in-out select-none ${
+        isInspectorCollapsed ? 'translate-y-[calc(100%-2.75rem)]' : 'translate-y-0'
       }`}
     >
-      <div className="relative w-96 bg-slate-900/95 border border-indigo-500/60 rounded-xl shadow-2xl backdrop-blur p-4 space-y-3 text-slate-200 text-xs">
-        {/* Collapse / Expand Toggle Strip Edge Button */}
+      <div className="relative w-80 bg-slate-900/95 border border-indigo-500/60 rounded-xl shadow-2xl backdrop-blur p-4 space-y-4 text-slate-200 text-xs">
+        {/* Toggle strip button on top edge for collapsing UPWARDS / DOWNWARDS */}
         <button
           onClick={toggleInspectorCollapsed}
-          className="absolute -left-9 top-4 w-9 h-10 bg-slate-900/95 border-l border-t border-b border-indigo-500/60 rounded-l-lg shadow-lg flex items-center justify-center text-indigo-400 hover:text-white hover:bg-indigo-600 transition-colors"
-          title={isInspectorCollapsed ? 'Развернуть свойства объекта' : 'Свернуть панель свойств'}
+          className="absolute left-1/2 -top-6 -translate-x-1/2 px-4 py-0.5 bg-slate-900/95 border-t border-l border-r border-indigo-500/60 rounded-t-lg shadow-lg flex items-center justify-center text-indigo-400 hover:text-white hover:bg-indigo-600 transition-colors gap-1 text-[11px] font-medium"
+          title={isInspectorCollapsed ? 'Развернуть свойства' : 'Свернуть свойства'}
         >
-          {isInspectorCollapsed ? <ChevronLeft className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
+          {isInspectorCollapsed ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+          <span>{isInspectorCollapsed ? 'Свойства объекта' : 'Свернуть'}</span>
         </button>
 
         {/* Header with Title and Close button */}

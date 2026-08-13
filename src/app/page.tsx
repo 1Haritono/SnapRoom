@@ -29,31 +29,30 @@ export default function HomeApp() {
 
   return (
     <div className="flex h-screen w-screen bg-slate-950 text-slate-100 overflow-hidden font-sans relative">
-      {/* Collapsible Left Sidebar */}
+      {/* Left Sidebar Menu - Collapses UPWARDS */}
       <div
-        className={`h-full bg-slate-900 border-r border-slate-800 flex flex-col z-20 shadow-2xl transition-all duration-300 relative ${
-          isSidebarCollapsed ? 'w-16' : 'w-96'
+        className={`h-full bg-slate-900 border-r border-slate-800 flex flex-col z-20 shadow-2xl transition-all duration-300 relative w-96 ${
+          isSidebarCollapsed ? '-translate-y-[calc(100%-4rem)]' : 'translate-y-0'
         }`}
       >
-        {/* Toggle Button on Sidebar Border */}
+        {/* Toggle Button at the bottom edge of sidebar */}
         <button
           onClick={toggleSidebarCollapsed}
-          className="absolute -right-3 top-5 w-6 h-6 bg-indigo-600 hover:bg-indigo-500 text-white rounded-full flex items-center justify-center shadow-lg border border-slate-700 z-30 transition-transform active:scale-95"
+          className="absolute left-1/2 -bottom-6 -translate-x-1/2 px-4 py-0.5 bg-slate-900/95 border-b border-l border-r border-indigo-500/60 rounded-b-lg shadow-lg flex items-center justify-center text-indigo-400 hover:text-white hover:bg-indigo-600 transition-colors gap-1 text-[11px] font-medium z-30"
           title={isSidebarCollapsed ? 'Развернуть меню' : 'Свернуть меню'}
         >
-          {isSidebarCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+          {isSidebarCollapsed ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
+          <span>{isSidebarCollapsed ? 'Настройки помещения и мебели' : 'Свернуть'}</span>
         </button>
 
         {/* Header */}
         <div className="p-4 border-b border-slate-800 flex items-center justify-between bg-slate-900/50">
-          <div className="flex items-center gap-2 overflow-hidden">
-            <Box className="w-6 h-6 text-indigo-500 shrink-0" />
-            {!isSidebarCollapsed && (
-              <div className="truncate">
-                <h1 className="font-bold text-base text-white tracking-tight">SnapRoom</h1>
-                <p className="text-[10px] text-slate-400">SnapRoom 1.4 — 3D & 2D Конструктор</p>
-              </div>
-            )}
+          <div className="flex items-center gap-2">
+            <Box className="w-6 h-6 text-indigo-500" />
+            <div>
+              <h1 className="font-bold text-base text-white tracking-tight">SnapRoom</h1>
+              <p className="text-[10px] text-slate-400">SnapRoom 1.5 — 3D & 2D Конструктор</p>
+            </div>
           </div>
         </div>
 
@@ -69,10 +68,9 @@ export default function HomeApp() {
                 ? 'border-indigo-500 text-indigo-400 bg-slate-800/40'
                 : 'border-transparent text-slate-400 hover:text-slate-200'
             }`}
-            title="1. Помещение"
           >
-            <Home className="w-4 h-4 shrink-0" />
-            {!isSidebarCollapsed && <span>1. Помещение</span>}
+            <Home className="w-4 h-4" />
+            <span>1. Помещение</span>
           </button>
           <button
             onClick={() => {
@@ -84,37 +82,17 @@ export default function HomeApp() {
                 ? 'border-indigo-500 text-indigo-400 bg-slate-800/40'
                 : 'border-transparent text-slate-400 hover:text-slate-200'
             }`}
-            title="2. Мебель"
           >
-            <Box className="w-4 h-4 shrink-0" />
-            {!isSidebarCollapsed && <span>2. Мебель</span>}
+            <Box className="w-4 h-4" />
+            <span>2. Мебель</span>
           </button>
         </div>
 
-        {/* Tab Content (Hidden when collapsed) */}
-        {!isSidebarCollapsed ? (
-          <div className="flex-1 overflow-y-auto p-4 custom-scrollbar space-y-4">
-            {activeTab === 'room' && <RoomEditor />}
-            {activeTab === 'furniture' && <FurnitureEditor />}
-          </div>
-        ) : (
-          <div className="flex-1 flex flex-col items-center py-6 gap-6 text-slate-500">
-            <button
-              onClick={toggleSidebarCollapsed}
-              className="p-2 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-indigo-400 transition-colors"
-              title="Развернуть настройки помещения"
-            >
-              <Home className="w-5 h-5" />
-            </button>
-            <button
-              onClick={toggleSidebarCollapsed}
-              className="p-2 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-indigo-400 transition-colors"
-              title="Развернуть каталог мебели"
-            >
-              <Box className="w-5 h-5" />
-            </button>
-          </div>
-        )}
+        {/* Tab Content */}
+        <div className="flex-1 overflow-y-auto p-4 custom-scrollbar space-y-4">
+          {activeTab === 'room' && <RoomEditor />}
+          {activeTab === 'furniture' && <FurnitureEditor />}
+        </div>
 
         {/* Footer info */}
         {!isSidebarCollapsed && (
@@ -181,9 +159,10 @@ export default function HomeApp() {
                     ? 'bg-indigo-600 text-white shadow'
                     : 'text-slate-400 hover:text-slate-200'
                 }`}
+                title="Убрать объём (Плоский 2D вид)"
               >
                 <LayoutGrid className="w-4 h-4" />
-                <span>2D План</span>
+                <span>2D План (Без объёма)</span>
               </button>
               <button
                 onClick={() => setViewMode('3D')}
@@ -192,9 +171,10 @@ export default function HomeApp() {
                     ? 'bg-indigo-600 text-white shadow'
                     : 'text-slate-400 hover:text-slate-200'
                 }`}
+                title="Включить объём (Объёмный 3D вид)"
               >
                 <Eye className="w-4 h-4" />
-                <span>3D Просмотр</span>
+                <span>3D Просмотр (С объёмом)</span>
               </button>
             </div>
           </div>

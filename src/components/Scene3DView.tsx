@@ -94,7 +94,7 @@ const Module3D: React.FC<Module3DProps> = ({ module, isSelected, onSelect }) => 
   );
 };
 
-// Smart Wall Component with Raycast / Ray-Vector check for wall hiding and view-dependent label visibility
+// Smart Wall Component with exact vector checks for front-wall opacity & bottom-positioned labels
 interface DynamicWallProps {
   wallId: 'A' | 'B' | 'C' | 'D';
   position: [number, number, number];
@@ -108,6 +108,7 @@ const DynamicWall: React.FC<DynamicWallProps> = ({ wallId, position, rotation = 
   const meshRef = useRef<THREE.Mesh>(null);
   const [opacity, setOpacity] = useState(0.7);
   const [isLabelVisible, setIsLabelVisible] = useState(true);
+  const [labelBottom, setLabelBottom] = useState(false);
   const { cameraPreset } = useAppStore();
 
   useFrame(({ camera }) => {
@@ -116,30 +117,35 @@ const DynamicWall: React.FC<DynamicWallProps> = ({ wallId, position, rotation = 
     const wallPos = new THREE.Vector3(...position);
     const centerPos = new THREE.Vector3(...roomCenter);
 
-    // Vector from wall position to room center
-    const wallToCenter = centerPos.clone().sub(wallPos).normalize();
-    // Vector from wall position to camera
-    const wallToCam = camera.position.clone().sub(wallPos).normalize();
+    // Vector from room center to wall
+    const centerToWall = wallPos.clone().sub(centerPos).normalize();
+    // Vector from room center to camera
+    const centerToCam = camera.position.clone().sub(centerPos).normalize();
 
-    // Dot product check: if camera is standing behind this wall looking inside -> make wall ultra transparent (opacity 0.08)
-    const dot = wallToCenter.dot(wallToCam);
-    const isObscuring = dot > 0.05;
+    // Dot product: if camera and wall are on the same side of center -> camera looks THROUGH this wall -> make transparent
+    const dot = centerToWall.dot(centerToCam);
+    const isFrontWall = dot > 0.15;
 
-    const targetOpacity = isObscuring ? 0.08 : 0.7;
+    const targetOpacity = isFrontWall ? 0.08 : 0.7;
     setOpacity((prev) => THREE.MathUtils.lerp(prev, targetOpacity, 0.15));
 
-    // Label visibility rules:
-    // Front view -> show only back wall (C)
+    // Label visibility & position rules:
+    // Front view -> show only back wall (C), label positioned at bottom
     // Top view -> show all walls
     let labelShow = true;
+    let isBottom = false;
+
     if (cameraPreset === 'front') {
       labelShow = wallId === 'C';
+      isBottom = true;
     } else if (cameraPreset === 'left') {
       labelShow = wallId === 'B';
     } else if (cameraPreset === 'right') {
       labelShow = wallId === 'D';
     }
+
     setIsLabelVisible(labelShow);
+    setLabelBottom(isBottom);
   });
 
   return (
@@ -154,11 +160,11 @@ const DynamicWall: React.FC<DynamicWallProps> = ({ wallId, position, rotation = 
         />
       </mesh>
 
-      {/* Wall 3D Billboard Label */}
+      {/* Wall 3D Billboard Label - Positioned at bottom when in Front view */}
       {isLabelVisible && (
-        <Billboard position={[0, size[1] / 2 + 0.2, 0]}>
+        <Billboard position={[0, labelBottom ? -size[1] / 2 + 0.3 : size[1] / 2 + 0.2, 0]}>
           <Html center transform sprite distanceFactor={10}>
-            <div className="bg-slate-900/90 text-indigo-400 text-xs font-bold px-2 py-0.5 rounded border border-slate-700 shadow-md whitespace-nowrap opacity-85 pointer-events-none select-none">
+            <div className="bg-slate-900/90 text-indigo-400 text-xs font-bold px-3 py-1 rounded border border-slate-700 shadow-md whitespace-nowrap opacity-90 pointer-events-none select-none">
               {label}
             </div>
           </Html>
@@ -237,7 +243,7 @@ const CameraController: React.FC<CameraControllerProps> = ({ controlsRef, roomLM
 };
 
 export const Scene3DView: React.FC = () => {
-  const { room, modules, selectedModuleId, setSelectedModuleId, setContextMenu } = useAppStore();
+  const { room, modules, selectedModuleId, setSelectedModuleId, setContextMenu, viewMode } = useAppStore();
   const controlsRef = useRef<OrbitControlsImpl>(null);
   const rightClickTimerRef = useRef<NodeJS.Timeout | null>(null);
   const isMouseDownRightRef = useRef(false);
@@ -278,20 +284,26 @@ export const Scene3DView: React.FC = () => {
 
   return (
     <div
-      className="w-full h-full bg-slate-950 relative"
+      className="w-full h-full bg-slate-950 fixed inset-0 z-0"
       onMouseDown={handleMouseDown}
       onMouseUp={handleMouseUp}
       onContextMenu={handleContextMenu}
     >
       <Canvas
         shadows={false}
-        camera={{ position: [roomLM * 1.4, roomHM * 1.4, roomWM * 1.7], fov: 50 }}
+        orthographic={viewMode === '2D'}
+        camera={
+          viewMode === '2D'
+            ? { position: [roomLM / 2, roomHM * 3, roomWM / 2], zoom: 120 }
+            : { position: [roomLM * 1.4, roomHM * 1.4, roomWM * 1.7], fov: 50 }
+        }
         onPointerDown={(e) => {
           if (e.button === 0 && e.target === e.currentTarget) {
             setSelectedModuleId(null);
           }
         }}
       >
+        <color attach="background" args={['#020617']} />
         <ambientLight intensity={0.8} />
         <directionalLight
           position={[roomLM * 2, roomHM * 3, roomWM * 2]}

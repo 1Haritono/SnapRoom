@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { useAppStore } from '@/store/useAppStore';
 import { MaterialSelector } from './MaterialSelector';
-import { Layers, ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { Layers, ChevronUp, ChevronDown, X } from 'lucide-react';
 
 export const StandaloneMaterialsPanel: React.FC = () => {
   const {
@@ -41,18 +41,19 @@ export const StandaloneMaterialsPanel: React.FC = () => {
 
   return (
     <div
-      className={`fixed top-20 left-4 z-30 transition-all duration-300 ease-in-out select-none ${
-        isCollapsed ? '-translate-x-[calc(100%-2.5rem)]' : 'translate-x-0'
+      className={`fixed top-16 left-4 z-30 transition-all duration-300 ease-in-out select-none ${
+        isCollapsed ? '-translate-y-[calc(100%-2.5rem)]' : 'translate-y-0'
       }`}
     >
       <div className="relative w-80 bg-slate-900/95 border border-indigo-500/60 rounded-xl shadow-2xl backdrop-blur p-4 space-y-3 text-slate-200 text-xs">
-        {/* Toggle strip button on right edge */}
+        {/* Toggle strip button on bottom edge */}
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
-          className="absolute -right-9 top-4 w-9 h-10 bg-slate-900/95 border-r border-t border-b border-indigo-500/60 rounded-r-lg shadow-lg flex items-center justify-center text-indigo-400 hover:text-white hover:bg-indigo-600 transition-colors"
-          title={isCollapsed ? 'Развернуть панель материалов' : 'Свернуть материалы'}
+          className="absolute left-1/2 -bottom-6 -translate-x-1/2 px-4 py-0.5 bg-slate-900/95 border-b border-l border-r border-indigo-500/60 rounded-b-lg shadow-lg flex items-center justify-center text-indigo-400 hover:text-white hover:bg-indigo-600 transition-colors gap-1 text-[11px] font-medium"
+          title={isCollapsed ? 'Развернуть материалы' : 'Свернуть материалы'}
         >
-          {isCollapsed ? <ChevronRight className="w-5 h-5" /> : <ChevronLeft className="w-5 h-5" />}
+          {isCollapsed ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
+          <span>{isCollapsed ? 'Материалы' : 'Свернуть'}</span>
         </button>
 
         {/* Header */}
